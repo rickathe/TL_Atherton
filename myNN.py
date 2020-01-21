@@ -1,16 +1,16 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import nn5layer
+import nn3layer
 
 def plot_loss(training_errors, validation_errors):
     """ Creates a plot to chart error over time. """
     plt.xscale('Log')
     plt.xlabel('Epochs')
     plt.ylabel('Mean Actual Error')
-    plt.plot(training_errors, label = "Validation Error", \
-        color = 'red')
-    plt.plot(validation_errors, label = "Training Error", \
+    plt.plot(training_errors, label = "Training Error", \
         color = 'blue')
+    plt.plot(validation_errors, label = "Validation Error", \
+        color = 'red')
     plt.legend()
     # Saves plot automatically, adjust filename as needed.
     #plt.savefig('multiply_10k_1k_50h_001lr_5layer_test6.png')
@@ -19,7 +19,7 @@ def plot_loss(training_errors, validation_errors):
 
 # Run the neural network.
 set_input_nodes = 2
-set_hidden_nodes = 20
+set_hidden_nodes = 35
 set_output_nodes = 1
 set_learning_rate = 0.001
 
@@ -27,7 +27,7 @@ training_size = 10000
 testing_size = 1000
 epoch = 5000
 
-n = nn5layer.NeuralNetwork(set_input_nodes, set_hidden_nodes, set_output_nodes, \
+n = nn3layer.NeuralNetwork(set_input_nodes, set_hidden_nodes, set_output_nodes, \
     set_learning_rate)
 
 
@@ -68,10 +68,11 @@ finish = 0
 for e in range(epoch):
     loss = 0
     validation_loss = 0
+
     for record in range(training_size):
         error = n.train(scaled_training_data[record, :], \
             scaled_training_solutions[0, record])
-        errors = error * (data_max - data_min) + data_min
+        error = error * (data_max - data_min) + data_min
         loss += abs(error)
     loss = loss / training_size
     training_record.append(loss)
@@ -116,7 +117,7 @@ for e in range(epoch):
             finish = 1
 
 # Flatten list of arrays from for loops into something the graph can utilize.
-record_final = np.concatenate(training_record)
+training_final = np.concatenate(training_record)
 validation_final = np.concatenate(validation_record)
 
 # Print 10%/5%/2%/1% accuracy percentages.
@@ -147,4 +148,4 @@ for record in range(15):
 '''
 
 # Plot the graph.
-plot_loss(record_final, validation_final)
+plot_loss(training_final, validation_final)
