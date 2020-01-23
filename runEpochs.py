@@ -1,4 +1,3 @@
-
 import numpy as np
 import matplotlib.pyplot as plt
 import nn3layer
@@ -30,7 +29,7 @@ set_learning_rate = 0.01
 
 training_size = 10000
 testing_size = 1000
-epoch = 1
+epoch = 3
 
 # Select hyperparameter to be analyzed and values to cycle through. 
 # NOTE: Where these iteract with the NN are currently hard-coded and must be
@@ -93,19 +92,31 @@ for test in range(len(test_runs)):
         
         validation_loss = validation_loss / testing_size
         validation_record.append(validation_loss)
+
     if test is 0:
-        test_data = np.asarray(validation_record)
+        #test_data = np.asarray(validation_record)
+        validation_record_0 = validation_record
+    elif test is 1:
+        #test_data_temp = np.asarray(validation_record)
+        #np.vstack((test_data, test_data_temp))
+        validation_record_1 = validation_record
+    elif test is 2:
+        validation_record_2 = validation_record
     else:
-        test_data_temp = np.asarray(validation_record)
-        np.vstack(test_data, test_data_temp)
+        validation_record_3 = validation_record
+    validation_record = []
 
 # Flatten list of arrays from for loops into something the graph can utilize.
 #record_final = np.concatenate(training_record)
 #validation_final = np.concatenate(validation_record)
-test_0_output = test_data[0,:].flatten()
-test_1_output = test_data[1,:].flatten()
-test_2_output = test_data[2,:].flatten()
-test_3_output = test_data[3,:].flatten()
+test_0_output = np.concatenate(validation_record_0)
+test_1_output = np.concatenate(validation_record_1)
+test_2_output = np.concatenate(validation_record_2)
+test_3_output = np.concatenate(validation_record_3)
+
+
+# Plot the graph.
+plot_loss(test_0_output, test_1_output, test_2_output, test_3_output)
 
 
 # Plot the graph.
