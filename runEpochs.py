@@ -1,6 +1,7 @@
+
 import numpy as np
 import matplotlib.pyplot as plt
-import nn3layer
+import nn5layer
 
 def plot_loss(test_0_output, test_1_output, test_2_output, test_3_output):
     """ Creates a plot to chart error over time. """
@@ -14,10 +15,13 @@ def plot_loss(test_0_output, test_1_output, test_2_output, test_3_output):
     plt.plot(test_2_output, label = f"{hyper_p} {test_runs[2]} Error", 
         color = 'green')
     plt.plot(test_3_output, label = f"{hyper_p} {test_runs[3]} Error", 
-        color = 'yellow')
+        color = 'orange')
+    plt.plot(test_3_output, label = f"{hyper_p} {test_runs[4]} Error", 
+        color = 'cyan')
+    plt.title(f"{test_name}")
     plt.legend()
     # Saves plot automatically, adjust filename as needed.
-    #plt.savefig('multiply_10k_1k_50h_001lr_5layer_test6.png')
+    plt.savefig(f"plots/{test_name}")
     plt.show()
 
 
@@ -29,13 +33,14 @@ set_learning_rate = 0.01
 
 training_size = 10000
 testing_size = 1000
-epoch = 3
+epoch = 3000
 
 # Select hyperparameter to be analyzed and values to cycle through. 
 # NOTE: Where these iteract with the NN are currently hard-coded and must be
 # changed manually.
-test_runs = [3, 9, 15, 27]
+test_runs = [2, 4, 8, 16, 32]
 hyper_p = "HN"
+test_name = "multiply_10k1k_var_01lr_4layer_test1"
 
 # Creates m rows of 2 integer values to act as inputs.
 training_data = np.random.randint(1, 100, (training_size, 2))
@@ -67,7 +72,7 @@ validation_record = []
 
 
 for test in range(len(test_runs)):
-    n = nn3layer.NeuralNetwork(set_input_nodes, test_runs[test], set_output_nodes, \
+    n = nn5layer.NeuralNetwork(set_input_nodes, test_runs[test], set_output_nodes, \
     set_learning_rate)
     for e in range(epoch):
         loss = 0
@@ -93,6 +98,9 @@ for test in range(len(test_runs)):
         validation_loss = validation_loss / testing_size
         validation_record.append(validation_loss)
 
+        if e > 300 and validation_record[-1] > validation_record[-2]:
+            break
+
     if test is 0:
         #test_data = np.asarray(validation_record)
         validation_record_0 = validation_record
@@ -102,8 +110,10 @@ for test in range(len(test_runs)):
         validation_record_1 = validation_record
     elif test is 2:
         validation_record_2 = validation_record
-    else:
+    elif test is 3:
         validation_record_3 = validation_record
+    else:
+        validation_record_4 = validation_record
     validation_record = []
 
 # Flatten list of arrays from for loops into something the graph can utilize.
@@ -113,11 +123,14 @@ test_0_output = np.concatenate(validation_record_0)
 test_1_output = np.concatenate(validation_record_1)
 test_2_output = np.concatenate(validation_record_2)
 test_3_output = np.concatenate(validation_record_3)
+test_4_output = np.concatenate(validation_record_4)
 
 
 # Plot the graph.
-plot_loss(test_0_output, test_1_output, test_2_output, test_3_output)
-
-
-# Plot the graph.
+'''
+np.savetxt(f'testData/{test_name}_data0.txt', test_0_output, delimiter=',')
+np.savetxt(f'testData/{test_name}_data1.txt', test_1_output, delimiter=',') 
+np.savetxt(f'testData/{test_name}_data2.txt', test_2_output, delimiter=',') 
+np.savetxt(f'testData/{test_name}_data3.txt', test_3_output, delimiter=',')
+'''
 plot_loss(test_0_output, test_1_output, test_2_output, test_3_output)
