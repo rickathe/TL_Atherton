@@ -1,4 +1,4 @@
-# TeuscherLab Multiplicaion Project
+# TeuscherLab Multiplicaion Neural Network
 
 Repo for a neural network built from numpy using Tariq Rasid's template for the base train/query design.    
 
