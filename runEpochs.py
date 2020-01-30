@@ -3,8 +3,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import nn5layer
 
-def plot_loss(test_0_output, test_1_output, test_2_output, test_3_output):
-    """ Creates a plot to chart error over time. """
+def plot_loss(test_0_output, test_1_output, test_2_output, test_3_output, 
+    hyper_p, test_runs, test_name):
+    """ Creates a plot to chart error over time. Takes 4 inputs. """
     plt.xscale('Log')
     plt.xlabel('Epochs')
     plt.ylabel('Mean Actual Error')
@@ -24,6 +25,23 @@ def plot_loss(test_0_output, test_1_output, test_2_output, test_3_output):
     plt.savefig(f"plots/{test_name}")
     plt.show()
 
+def histogram_error(val_mean, val_std, test_runs, hyper_p, layers, test_name):
+    labels = test_runs
+    x_pos = np.arange(len(labels))
+    val_means = list(val_mean)
+    val_stds = list(val_std)
+    fig, ax = plt.subplots()
+    ax.bar(x_pos, val_means, yerr=val_stds, align='center', alpha=0.5, 
+        ecolor='black', capsize=10)
+    ax.set_ylabel('Mean Error')
+    ax.set_xlabel(f'{hyper_p}')
+    ax.set_xticks(x_pos)
+    ax.set_xticklabels(labels)
+    ax.set_title(f'{layers} Mean Min. Error (3 Trials per Bar)')
+    ax.yaxis.grid(True)
+    plt.tight_layout
+    plt.savefig(f'plots/{test_name}.png')
+    plt.show()
 
 # Run the neural network.
 set_input_nodes = 2
@@ -33,14 +51,23 @@ set_learning_rate = 0.01
 
 training_size = 10000
 testing_size = 1000
-epoch = 3000
+epoch = 2000
+
+# Number of times to train each hyper-param. Results will be averaged.
+iter = 3
+
+# Allows for plotting either training over epochs or a bar graph with minimum 
+# mean error. use 'bar' for bar graph and 'plot' for training line graph.
+test_type = 'bar'
+# test_type = 'plot'
 
 # Select hyperparameter to be analyzed and values to cycle through. 
 # NOTE: Where these iteract with the NN are currently hard-coded and must be
 # changed manually.
 test_runs = [2, 4, 8, 16, 32]
 hyper_p = "HN"
-test_name = "multiply_10k1k_var_01lr_4layer_test1"
+test_name = "bar_10k1k_var_01lr_5layer_test1"
+layers = "5 Hidden Layer"
 
 # Creates m rows of 2 integer values to act as inputs.
 training_data = np.random.randint(1, 100, (training_size, 2))
@@ -69,68 +96,93 @@ scaled_testing_solutions = (testing_solutions - data_min) \
 # Lists for plotting loss. Records errors from training and validation.
 training_record = []
 validation_record = []
+validation_graph = []
 
 
 for test in range(len(test_runs)):
-    n = nn5layer.NeuralNetwork(set_input_nodes, test_runs[test], set_output_nodes, \
-    set_learning_rate)
-    for e in range(epoch):
-        loss = 0
-        validation_loss = 0
-        for record in range(training_size):
-            error = n.train(scaled_training_data[record, :], \
-                scaled_training_solutions[0, record])
-            error = error * (data_max - data_min) + data_min
-            loss += abs(error)
-        loss = loss / training_size
-        training_record.append(loss)
 
-        # Checks the trained network against the validation data and records the
-        # difference.
-        for record in range(testing_size):
-            output = n.query(scaled_testing_data[record, :])
-            output = output * (data_max - data_min) + data_min
+    for round in range(iter):
+        # Change this nn#layer when changing the number of hidden layers to use.
+        n = nn5layer.NeuralNetwork(set_input_nodes, test_runs[test], set_output_nodes, \
+        set_learning_rate)
 
-            # Records the magnitude of the difference between actual and 
-            # prediction.
-            validation_loss += abs(testing_solutions[0, record] - output)
+        for e in range(epoch):
+            loss = 0
+            validation_loss = 0
+
+            for record in range(training_size):
+                error = n.train(scaled_training_data[record, :], \
+                    scaled_training_solutions[0, record])
+                error = error * (data_max - data_min) + data_min
+                loss += abs(error)
+            loss = loss / training_size
+            training_record.append(loss)
+
+            # Checks the trained network against the validation data and records the
+            # difference.
+            for record in range(testing_size):
+                output = n.query(scaled_testing_data[record, :])
+                output = output * (data_max - data_min) + data_min
+
+                # Records the magnitude of the difference between actual and 
+                # prediction.
+                validation_loss += abs(testing_solutions[0, record] - output)
+            
+            validation_loss = validation_loss / testing_size
+            validation_record.append(validation_loss)
+
+            if e > 300 and validation_record[-1] > validation_record[-2]:
+                break
+
+        if test_type is 'plot':
+
+            if test is 0:
+                #test_data = np.asarray(validation_record)
+                validation_record_0 = validation_record
+            elif test is 1:
+                #test_data_temp = np.asarray(validation_record)
+                #np.vstack((test_data, test_data_temp))
+                validation_record_1 = validation_record
+            elif test is 2:
+                validation_record_2 = validation_record
+            elif test is 3:
+                validation_record_3 = validation_record
+            else:
+                validation_record_4 = validation_record
+
+        if test_type is 'bar':
+
+            if round is 0:
+                validation_final = np.array(validation_record[-2])
+            else:
+                validation_final = np.append(validation_final, validation_record[-2])
         
-        validation_loss = validation_loss / testing_size
-        validation_record.append(validation_loss)
-
-        if e > 300 and validation_record[-1] > validation_record[-2]:
-            break
-
-    if test is 0:
-        #test_data = np.asarray(validation_record)
-        validation_record_0 = validation_record
-    elif test is 1:
-        #test_data_temp = np.asarray(validation_record)
-        #np.vstack((test_data, test_data_temp))
-        validation_record_1 = validation_record
-    elif test is 2:
-        validation_record_2 = validation_record
-    elif test is 3:
-        validation_record_3 = validation_record
-    else:
-        validation_record_4 = validation_record
-    validation_record = []
-
-# Flatten list of arrays from for loops into something the graph can utilize.
-#record_final = np.concatenate(training_record)
-#validation_final = np.concatenate(validation_record)
-test_0_output = np.concatenate(validation_record_0)
-test_1_output = np.concatenate(validation_record_1)
-test_2_output = np.concatenate(validation_record_2)
-test_3_output = np.concatenate(validation_record_3)
-test_4_output = np.concatenate(validation_record_4)
+        validation_record = []
+    validation_graph.append(validation_final) 
 
 
-# Plot the graph.
-'''
-np.savetxt(f'testData/{test_name}_data0.txt', test_0_output, delimiter=',')
-np.savetxt(f'testData/{test_name}_data1.txt', test_1_output, delimiter=',') 
-np.savetxt(f'testData/{test_name}_data2.txt', test_2_output, delimiter=',') 
-np.savetxt(f'testData/{test_name}_data3.txt', test_3_output, delimiter=',')
-'''
-plot_loss(test_0_output, test_1_output, test_2_output, test_3_output)
+if test_type is 'plot':
+
+    # Flatten list of arrays from for loops into something the graph can 
+    # utilize.
+    #record_final = np.concatenate(training_record)
+    #validation_final = np.concatenate(validation_record)
+    test_0_output = np.concatenate(validation_record_0)
+    test_1_output = np.concatenate(validation_record_1)
+    test_2_output = np.concatenate(validation_record_2)
+    test_3_output = np.concatenate(validation_record_3)
+    test_4_output = np.concatenate(validation_record_4)
+
+    # Plot the graph.
+    plot_loss(test_0_output, test_1_output, test_2_output, test_3_output,
+    hyper_p, test_runs, test_name)
+
+if test_type is 'bar':
+
+    validation_mean = np.mean(validation_graph, axis=1)
+    validation_std = np.std(validation_graph, axis=1)
+
+    histogram_error(validation_mean, validation_std, test_runs, hyper_p, 
+        layers, test_name)
+
+
