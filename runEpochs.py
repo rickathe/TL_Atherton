@@ -1,7 +1,7 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
-import nn5layer
+import nn4layer
 
 def plot_loss(test_0_output, test_1_output, test_2_output, test_3_output, 
     hyper_p, test_runs, test_name):
@@ -22,26 +22,34 @@ def plot_loss(test_0_output, test_1_output, test_2_output, test_3_output,
     plt.title(f"{test_name}")
     plt.legend()
     # Saves plot automatically, adjust filename as needed.
-    plt.savefig(f"plots/{test_name}")
+    plt.savefig(f"plots/{test_name}.png")
     plt.show()
 
-def histogram_error(val_mean, val_std, test_runs, hyper_p, layers, test_name):
+def histogram_error(val_mean, val_std, test_runs, hyper_p, layers, test_name,
+    iters, epochs_final):
+    count_hist = 0
     labels = test_runs
     x_pos = np.arange(len(labels))
     val_means = list(val_mean)
     val_stds = list(val_std)
     fig, ax = plt.subplots()
-    ax.bar(x_pos, val_means, yerr=val_stds, align='center', alpha=0.5, 
+    bars = ax.bar(x_pos, val_means, yerr=val_stds, align='center', alpha=0.5, 
         ecolor='black', capsize=10)
+    for bar in bars:
+        yval = bar.get_height()
+        plt.text(bar.get_x(), yval + .005, round(yval,1))
+        plt.text(bar.get_x(), 50, epochs_final[count_hist])
+        count_hist += 1
     ax.set_ylabel('Mean Error')
     ax.set_xlabel(f'{hyper_p}')
     ax.set_xticks(x_pos)
     ax.set_xticklabels(labels)
-    ax.set_title(f'{layers} Mean Min. Error (3 Trials per Bar)')
+    ax.set_title(f'{layers} Mean Min. Error ({iters} Trials per Bar)')
     ax.yaxis.grid(True)
     plt.tight_layout
     plt.savefig(f'plots/{test_name}.png')
     plt.show()
+
 
 # Run the neural network.
 set_input_nodes = 2
@@ -51,23 +59,23 @@ set_learning_rate = 0.01
 
 training_size = 10000
 testing_size = 1000
-epoch = 2000
+epoch = 1000
 
 # Number of times to train each hyper-param. Results will be averaged.
-iter = 3
+iters = 5
 
 # Allows for plotting either training over epochs or a bar graph with minimum 
 # mean error. use 'bar' for bar graph and 'plot' for training line graph.
 test_type = 'bar'
-# test_type = 'plot'
+#test_type = 'plot'
 
-# Select hyperparameter to be analyzed and values to cycle through. 
+# Select hyperparameter to be analyzed and values to cycle through.
 # NOTE: Where these iteract with the NN are currently hard-coded and must be
 # changed manually.
-test_runs = [2, 4, 8, 16, 32]
-hyper_p = "HN"
-test_name = "bar_10k1k_var_01lr_5layer_test1"
-layers = "5 Hidden Layer"
+test_runs = [8, 16, 32, 64]
+hyper_p = "HN"a
+test_name = "plot_10k1k_var_01lr_4layer_test3"
+layers = "4 Hidden Layer"
 
 # Creates m rows of 2 integer values to act as inputs.
 training_data = np.random.randint(1, 100, (training_size, 2))
@@ -97,14 +105,20 @@ scaled_testing_solutions = (testing_solutions - data_min) \
 training_record = []
 validation_record = []
 validation_graph = []
+epoch_broken = []
+epochs_final = []
 
 
 for test in range(len(test_runs)):
+    # Controls the hyper-parameters to be tested, set by var test_runs.
 
-    for round in range(iter):
-        # Change this nn#layer when changing the number of hidden layers to use.
-        n = nn5layer.NeuralNetwork(set_input_nodes, test_runs[test], set_output_nodes, \
-        set_learning_rate)
+    for rounds in range(iters):
+        # Controls the number of times to test each hyper-parameter.
+
+        # Change this nn#layer when changing the number of hidden layers to 
+        # use.
+        n = nn4layer.NeuralNetwork(set_input_nodes, test_runs[test], 
+            set_output_nodes, set_learning_rate)
 
         for e in range(epoch):
             loss = 0
@@ -118,9 +132,10 @@ for test in range(len(test_runs)):
             loss = loss / training_size
             training_record.append(loss)
 
-            # Checks the trained network against the validation data and records the
-            # difference.
+
             for record in range(testing_size):
+                # Checks the trained network against the validation data and 
+                # records the difference.
                 output = n.query(scaled_testing_data[record, :])
                 output = output * (data_max - data_min) + data_min
 
@@ -131,7 +146,16 @@ for test in range(len(test_runs)):
             validation_loss = validation_loss / testing_size
             validation_record.append(validation_loss)
 
-            if e > 300 and validation_record[-1] > validation_record[-2]:
+            if e > 100 and validation_record[-1] > validation_record[-2]:
+                
+                epoch_broken.append(e)
+                
+                if (rounds + 1) % iters is 0:
+                    # Before the last iteration of a hyper-param test breaks,
+                    # network records the average epochs it took to minimize
+                    # error.
+                    epochs_final.append(sum(epoch_broken)/len(epoch_broken))
+                    epoch_broken = []
                 break
 
         if test_type is 'plot':
@@ -139,6 +163,7 @@ for test in range(len(test_runs)):
             if test is 0:
                 #test_data = np.asarray(validation_record)
                 validation_record_0 = validation_record
+
             elif test is 1:
                 #test_data_temp = np.asarray(validation_record)
                 #np.vstack((test_data, test_data_temp))
@@ -147,18 +172,22 @@ for test in range(len(test_runs)):
                 validation_record_2 = validation_record
             elif test is 3:
                 validation_record_3 = validation_record
-            else:
+            elif test is 4:
                 validation_record_4 = validation_record
 
-        if test_type is 'bar':
+        elif test_type is 'bar':
 
-            if round is 0:
+            if rounds is 0:
                 validation_final = np.array(validation_record[-2])
             else:
-                validation_final = np.append(validation_final, validation_record[-2])
+                validation_final = np.append(validation_final, 
+                    validation_record[-2])
         
         validation_record = []
-    validation_graph.append(validation_final) 
+    
+    if test_type is 'bar':
+
+        validation_graph.append(validation_final) 
 
 
 if test_type is 'plot':
@@ -168,6 +197,7 @@ if test_type is 'plot':
     #record_final = np.concatenate(training_record)
     #validation_final = np.concatenate(validation_record)
     test_0_output = np.concatenate(validation_record_0)
+
     test_1_output = np.concatenate(validation_record_1)
     test_2_output = np.concatenate(validation_record_2)
     test_3_output = np.concatenate(validation_record_3)
@@ -175,7 +205,7 @@ if test_type is 'plot':
 
     # Plot the graph.
     plot_loss(test_0_output, test_1_output, test_2_output, test_3_output,
-    hyper_p, test_runs, test_name)
+        hyper_p, test_runs, test_name)
 
 if test_type is 'bar':
 
@@ -183,6 +213,7 @@ if test_type is 'bar':
     validation_std = np.std(validation_graph, axis=1)
 
     histogram_error(validation_mean, validation_std, test_runs, hyper_p, 
-        layers, test_name)
+        layers, test_name, iters, epochs_final)
+
 
 
