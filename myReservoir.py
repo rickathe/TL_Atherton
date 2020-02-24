@@ -13,13 +13,13 @@ def plot_loss(training_errors, validation_errors):
         color = 'red')
     plt.legend()
     # Saves plot automatically, adjust filename as needed.
-    plt.savefig('reservoir_RA_10whdens_100h_7spec_test_2.png')
+    plt.savefig('reservoir_05whdens_100h_7spec_test_3.png')
     plt.show()
 
 
 # Run the neural network.
 set_input_nodes = 2
-set_hidden_nodes = 100
+set_hidden_nodes = 500
 set_output_nodes = 1
 set_learning_rate = 0.01
 spectral_radius = 0.7
@@ -124,6 +124,7 @@ for e in range(epoch):
 training_final = np.concatenate(training_record)
 validation_final = np.concatenate(validation_record)
 
+'''
 # Print 10%/5%/2%/1% accuracy percentages.
 accuracy_10 = (len(validation_accuracy_10) / testing_size) * 100
 accuracy_5 = (len(validation_accuracy_5) / testing_size) * 100
@@ -133,7 +134,7 @@ print("Validation accuracy within 10% is:", accuracy_10, "%")
 print("Validation accuracy within 5% is is:", accuracy_5, "%")
 print("Validation accuracy within 2% is:", accuracy_2, "%")
 print("Validation accuracy within 1% is is:", accuracy_1, "%")
-
+'''
 
 # Show off some data.
 show_data = np.random.randint(0, 100, (15,2))
