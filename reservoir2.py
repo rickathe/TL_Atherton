@@ -20,19 +20,25 @@ class Reservoir:
         # Initializes weights with sparse density determined by connectivity.
         self.wih = scipy.sparse.random(self.hnodes, self.inodes, 
             density = self.density).todense()
-        #self.h_past = np.zeros(self.hnodes)
+        #self.wih = np.random.normal(0.0, pow(self.hnodes, -0.5), \
+		#	(self.hnodes, self.inodes))
         self.wh = scipy.sparse.random(self.hnodes, self.hnodes, 
-            density = .10).todense()
+            density = .005).todense()
         self.who = np.random.normal(0.0, pow(self.hnodes, -0.5), \
 			(self.onodes, self.hnodes))
-        self.h = np.zeros((self.wh.shape[0], 1))
-        self.final_outputs = np.zeros((self.who.shape[0], 1))
+
+        # Currently unused commands involving looking bcak a timestep.
+        #self.h_past = np.zeros(self.hnodes)
+        #self.h = np.zeros((self.wh.shape[0], 1))
+        #self.final_outputs = np.zeros((self.who.shape[0], 1))
+
+        # Ensure Nonzero reservoir values are evenly distributed.
+        self.wh[np.where(self.wh > 0)] -= 0.5
         
-        
+        # Set the spectral radius of the reservoir.
         self.eigen_val, self.eigen_vec = np.linalg.eig(self.wh)
         self.wh_max = np.max(np.abs(self.eigen_val))
         self.wh /= (np.abs(self.wh_max) / self.spectral)
-        
         
         # Anon function to call sigmoid function.
         #self.sigmoid = lambda x : (1 / (1 + np.exp(-x)))
@@ -63,7 +69,6 @@ class Reservoir:
         # Processes through past iteration of reservoir.
         #reservoir_inputs = np.dot(self.wh2, reservoir_inputs)
         reservoir_calcs = self.sigmoid(reservoir_inputs)
-
 		# Calcs dot product of hidden-output weights and input values, outputs
 		# an array w/ summed output values for each onode. Applies sigmoid.
         final_inputs = np.dot(self.who, reservoir_calcs)
@@ -86,8 +91,10 @@ class Reservoir:
         output_errors = targets - self.final_outputs
 
 		# Updates hidden-output and input-hidden weights based on error.
-        self.who += self.lr * np.dot((output_errors * self.final_outputs * \
-			(1.0 - self.final_outputs)), np.transpose(self.h))
+        #self.who += self.lr * np.dot((output_errors * self.final_outputs * \
+		#	(1.0 - self.final_outputs)), np.transpose(self.h))
+        self.who += self.lr * np.dot((output_errors 
+            * np.exp((1.0 - self.final_outputs))), np.transpose(self.h))
 
         return output_errors
 
