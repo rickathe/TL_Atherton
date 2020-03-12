@@ -31,9 +31,10 @@ class Reservoir:
         self.Win = np.random.uniform(0.0,1.0, (self.rnodes, self.inodes))
         self.Wh = sparse.rand(self.rnodes, self.rnodes, 
             density = .0025).todense()
-        self.Wout = np.random.normal(0.0, pow(self.rnodes, -0.5), 
+        self.Wback = np.random.normal(0.0, pow(self.rnodes, -0.5), 
             (self.onodes, (self.rnodes)))
-            #+ self.inodes + self.onodes)))
+        self.Wout = np.random.uniform(0.0, 1.0, (self.onodes, self.onodes
+            + self.rnodes + self.inodes))
         
         self.Wh[np.where(self.Wh > 0)] -= 0.5
 
@@ -46,13 +47,19 @@ class Reservoir:
         self.Wh /= spec_rad / 0.9
         
     def compute_state(self, inputs, targets):
-
+        
+        # N = training examples, T = variables in each example
         N, T = inputs.shape
-        inputs = np.array(inputs, ndmin=2)
-        previous_state = np.zeros((2, self.rnodes), dtype=float)
-        previous_output = np.zeros((1,1))
 
+        inputs = np.array(inputs, ndmin=2)
+        targets = np.array(targets, ndmin=2).T
+        
+        # Init state for reservoir
+        previous_state = np.zeros((self.rnodes, 1), dtype=float)
+        previous_output = np.zeros((1,1))
         #state_matrix = np.empty((N, T, self.rnodes), dtype=float)
+        
+        # Init for record of mean error per epoch 
         training_record = np.zeros((N), dtype=float)
 
         for n in range(N):
@@ -61,25 +68,35 @@ class Reservoir:
             current_target = targets[n]
 
 
-            wh_part = self.Wh @ previous_state.T
+            wh_part = self.Wh @ previous_state
+
+            # Needs to be reshaped or it cannot be broadcast
             win_part = self.Win @ np.reshape(current_input.T,(2,1))
+            wback_part = self.Wback.T @ previous_output
+            #print("Inputs are", inputs[n])
+            #print("Output is", targets[n])
+
             #wout_part = self.Wout.T @ previous_output
-            current_state = wh_part + win_part
-            current_state = np.tanh(current_state).T
+            
+            current_state = wh_part + win_part + wback_part
+            current_state = np.tanh(current_state)
+            
             # Smaller array is broadcast across the larger array
             #current_state = np.tanh(self.Wh @ previous_state.T + self.Win
             #    @ current_input.T + self.Wout.T * previous_output).T
             
             # Stores previous state [N x reservoir nodes] into state matrix
             #state_matrix[:, n] = current_state
-
-            current_output = np.tanh(self.Wout @ current_state)
+            current_output = np.concatenate([current_state, np.reshape(current_input.T,(2,1)),
+                previous_output])
+            current_output = np.tanh(self.Wout @ current_output)
 
             output_error = current_target - current_output
 
-            self.Wout += self.lr * np.dot((output_error * (1.0 - np.square(current_output))), self.Wh)
+            self.Wback += self.lr * np.dot((output_error * (1.0 - np.square(current_output))), current_state.T)
 
             previous_state = current_state
+            previous_output = current_output
 
             training_record[n] = output_error
 
@@ -91,7 +108,7 @@ rnodes = 1000
 onodes = 1
 learning_rate = 0.01
 sparsity = 0.05
-epochs = 250
+epochs = 1000
 training_size = 10000
 testing_size = 1000
 
@@ -131,6 +148,6 @@ for e in range(epochs):
     
     training_error[e] = R.compute_state(scaled_training_data, scaled_training_solutions)
 
-training_error = training_error * (data_max - data_min) + data_min
+#training_error = training_error * (data_max - data_min) + data_min
 
 plot_loss(training_error, np.zeros(epochs))
