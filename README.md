@@ -7,6 +7,9 @@ Network can plot training/validation error over epochs or create bar graphs disp
 To Run:
 - runEpochs.py is the master file which the network is run from. Parameters are set here.
 - nn#layer.py is the training/query network, replace # with the number of hidden layers desired.
+- simpleEcho.py is the current reservoir network I'm running tests with.
+
+- myReservoir.py is defunct.
 
 Future updates:
 - Remove hard coding of hidden layers, subsume into one neural network training/query file.
